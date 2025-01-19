@@ -1,0 +1,30 @@
+<!-- message.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>메시지 세부정보</title>
+</head>
+<body>
+    <h1>메시지 세부정보</h1>
+    <div>
+        <p><strong>보낸 사람:</strong> {{ message.sender }}</p>
+        <p><strong>내용:</strong> {{ message.content }}</p>
+        <p><strong>보낸 날짜:</strong> {{ message.date }}</p>
+    </div>
+    <div>
+        <h2>답변하기</h2>
+        <form action="{{ url_for('reply_message', message_id=message.id) }}" method="POST">
+            <textarea name="reply_content" rows="4" cols="50" required></textarea><br>
+            <input type="submit" value="답변 보내기">
+        </form>
+    </div>
+    <div>
+        <h2>답변</h2>
+        {% for reply in message.replies %}
+            <p><strong>답변:</strong> {{ reply.content }} - {{ reply.date }}</p>
+        {% endfor %}
+    </div>
+    <a href="{{ url_for('message_list') }}">메시지 목록으로 돌아가기</a>
+</body>
+</html>

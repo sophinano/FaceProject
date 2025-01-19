@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>학생 조회</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+        }
+        .header-nav {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+        }
+        header {
+            background-color: #11235A;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        header img {
+            width: 80%;
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        nav {
+            background-color: #11235A;
+            height: calc(100vh - 50px);
+            padding: 10px 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        nav a {
+            color: white;
+            padding: 14px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            flex: 1;
+            margin-left: 20px;
+            padding: 20px;
+        }
+        nav img {
+            margin-right: 17px;
+            width: 40px;
+            height: auto;
+            filter: brightness(0) invert(1);
+        }
+        .student-table-container {
+            max-height: 400px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        table th {
+            background-color: #f2f2f2;
+        }
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .attendance-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #11235A;
+            color: white;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .attendance-button:hover {
+            background-color: #0d1c4a;
+        }
+        .filter-container {
+            margin-bottom: 20px;
+        }
+        .filter-container label, .filter-container select {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 교수가 보는 학생 리스트 -->
+<div class="header-nav">
+    <header>
+        <img src="{{ url_for('static', filename='images/suwon_logo.png') }}" alt="USW 로고">
+    </header>
+
+    <nav>
+        <a href="{{ url_for('account') }}">
+            <img src="{{ url_for('static', filename='images/account.png') }}" alt="사용자 계정 아이콘">
+            계정
+        </a>
+        <a href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='images/dashboard1.png') }}" alt="대시보드 아이콘">
+            대시보드
+        </a>
+        <a href="{{ url_for('calendar') }}">
+            <img src="{{ url_for('static', filename='images/calendar.png') }}" alt="캘린더 아이콘">
+            캘린더
+        </a>
+        <a href="#messenger">
+            <img src="{{ url_for('static', filename='images/messenger.png') }}" alt="메신저 아이콘">
+            메신저
+        </a>
+    </nav>
+</div>
+
+    <div class="content" data-class-id="{{ class_id }}">
+        <h1>{{ class_name }}</h1>
+        <h2>학생 리스트</h2>
+
+        <!-- Flash 메시지 영역 -->
+        <div class="flash-message" id="flashMessage" style="display: none;">출석 상태가 업데이트되었습니다.</div>
+
+        <!-- 필터 섹션 -->
+        <div class="filter-container">
+            <label for="week">주차:</label>
+            <select id="week" name="week">
+                {% for i in range(1, 11) %}
+                <option value="{{ i }}" {% if i == week %}selected{% endif %}>{{ i }}주차</option>
+                {% endfor %}
+            </select>
+
+            <label for="period">교시:</label>
+            <select id="period" name="period">
+                <option value="1" {% if period == 1 %}selected{% endif %}>1교시</option>
+                <option value="2" {% if period == 2 %}selected{% endif %}>2교시</option>
+                <option value="3" {% if period == 3 %}selected{% endif %}>3교시</option>
+            </select>
+            <button class="confirm-button" onclick="updateStudentList()">확인</button>
+            <button class="attendance-button" onclick="startAttendance()">출결 시작</button>
+        </div>
+
+        <!-- 학생 목록 테이블 -->
+        <div class="student-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>학번</th>
+                        <th>이름</th>
+                        <th>출석 상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if students %}
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student['studentID'] }}</td>
+                        <td>{{ student['username'] }}</td>
+                        <td>{{ student['status'] or '미정' }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="3">출석 데이터가 없습니다.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 출결 수정 버튼 및 모달 -->
+        <button class="edit-button" onclick="openEditModal()">출결 수정</button>
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2>출석 상태 수정</h2>
+                <form id="editForm" method="POST" action="{{ url_for('update_attendance', class_id=class_id) }}"
+                    onsubmit="showFlashMessage(event)">
+                    <label for="student">학생 선택:</label>
+                    <select id="student" name="student_id">
+                        {% for student in students %}
+                        <option value="{{ student['studentID'] }}">{{ student['username'] }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="week">주차:</label>
+                    <input type="number" id="weekInput" name="week" value="{{ week }}" min="1" max="16">
+
+                    <label for="period">교시:</label>
+                    <input type="number" id="periodInput" name="period" value="{{ period }}" min="1" max="3">
+
+                    <label for="status">출석 상태:</label>
+                    <select id="status" name="status">
+                        <option value="출석">출석</option>
+                        <option value="지각">지각</option>
+                        <option value="결석">결석</option>
+                        <option value="미정">미정</option>
+                    </select>
+
+                    <button type="submit" class="save-button">저장</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateStudentList() {
+            const week = document.getElementById("week").value;
+            const period = document.getElementById("period").value;
+            const url = `/studentlist/{{ class_id }}/${week}?period=${period}`;
+            location.href = url;
+        }
+
+        function startAttendance() {
+        // 주차, 교시, 클래스 ID 값을 가져옴
+        const week = document.getElementById("week").value;
+        const period = document.getElementById("period").value;
+        const class_id = document.querySelector('.content').dataset.classId;
+
+        // URL을 직접 생성하여 attendance 엔드포인트로 이동
+        const url = `/attendance/${class_id}?week=${week}&period=${period}`;
+
+        // attendance 엔드포인트로 이동하여 출석 처리 시작
+        location.href = url;
+        }
+
+        function openEditModal() {
+            document.getElementById("editModal").style.display = "block";
+        }
+
+        function closeEditModal() {
+            document.getElementById("editModal").style.display = "none";
+        }
+
+        function showFlashMessage(event) {
+            event.preventDefault();
+            document.getElementById("flashMessage").style.display = "block";
+            setTimeout(() => {
+                event.target.submit();
+            }, 1000); // 1초 후 폼 제출
+        }
+
+        window.onclick = function (event) {
+            const modal = document.getElementById("editModal");
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+
+</body>
+
+
+</html>
+
+
+
