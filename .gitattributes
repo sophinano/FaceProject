@@ -1,0 +1,2 @@
+model_zip/shape_predictor_68_face_landmarks.dat.bz2 filter=lfs diff=lfs merge=lfs -text
+classified_model/shape_predictor_68_face_landmarks.dat filter=lfs diff=lfs merge=lfs -text
